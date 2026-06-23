@@ -24,6 +24,23 @@
 - Prefer **GitHub MCP** for issues, PRs, branches, and CI visibility when available.
 - Never commit secrets (`.env`, tokens, service keys).
 
+## GitHub automation
+
+Bootstrap and push are scripted — prefer scripts over manual git/GitHub steps.
+
+| Command | Purpose |
+|---------|---------|
+| `npm run setup` | Full bootstrap: Node, deps, git init, quality checks, GitHub |
+| `npm run setup:github` | Create repo (API), validate PAT, push `develop` + `main` |
+
+**Secrets:** `GITHUB_PERSONAL_ACCESS_TOKEN` in `.env.local` only (never chat/commit). Optional: `GITHUB_OWNER`, `GITHUB_REPO`.
+
+**Fine-grained PAT:** All repositories (not Public read-only); Contents + Workflows Read/Write; Administration Read/Write for API repo creation.
+
+**Push safety:** Use `x-access-token` auth only for push; reset `origin` to clean HTTPS; never embed PAT in remote/upstream URLs.
+
+**Recall:** Read `~/.cursor/skills/github-automation/SKILL.md` for full workflow and troubleshooting. User docs: `docs/setup-zh.md`.
+
 ## Workflow
 
 1. Read `docs/brief.md` for product scope.

@@ -1,0 +1,33 @@
+---
+description: GitHub PAT setup, automated push, and setup scripts for this project
+globs: scripts/setup*.sh,scripts/lib/**,.github/**,.env.example
+alwaysApply: false
+---
+
+# GitHub Automation (Adventure)
+
+## Commands
+
+- `npm run setup` — full bootstrap (Node, deps, git, GitHub, checks)
+- `npm run setup:github` — create repo, validate PAT, push `develop` + `main`
+
+## Secrets
+
+- `GITHUB_PERSONAL_ACCESS_TOKEN` in `.env.local` only — never chat, never commit
+- Optional: `GITHUB_OWNER`, `GITHUB_REPO`
+
+## PAT (Fine-grained)
+
+- Repository access: **All repositories**
+- Contents + Workflows: **Read and write**
+- Administration (account): Read and write for API repo creation
+
+## Push rules
+
+- Use `x-access-token` URL only during push; reset `origin` to clean HTTPS after
+- Never embed PAT in `git remote` or branch upstream config
+
+## Docs
+
+- User skill: `~/.cursor/skills/github-automation/SKILL.md`
+- Chinese guide: `docs/setup-zh.md`
