@@ -22,7 +22,23 @@ VERCEL_TOKEN=...               # Account → Settings → Tokens
 
 **不要把 token 发到聊天或提交到 Git。**
 
-### 2. 一键设置
+### 2. 一键向导（推荐）
+
+只需粘贴 **2 个 token**，其余全自动：
+
+```bash
+cd ~/Projects/adventure
+npm run setup:wizard
+```
+
+向导会：
+1. 打开 Supabase / Vercel 网页
+2. 你粘贴 **Supabase Access Token** → 自动列出项目供选择
+3. 自动获取 URL、anon key、service_role → 建表 → 生成类型
+4. 你粘贴 **Vercel Token** → 关联项目 → 预览部署
+5. 自动同步 GitHub Actions Secrets（Vercel CI）
+
+### 3. 一键设置（已填好 .env.local 时）
 
 ```bash
 cd ~/Projects/adventure

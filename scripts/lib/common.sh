@@ -84,13 +84,74 @@ install_node_if_missing() {
   ok "Node.js $(node -v)"
 }
 
+set_env_var() {
+  local key="$1" value="$2"
+  touch "$ENV_FILE"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+      sed -i '' "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+    else
+      sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+    fi
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+  fi
+}
+
+open_url() {
+  local url="$1"
+  if command -v open >/dev/null 2>&1; then
+    open "$url" 2>/dev/null || true
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" 2>/dev/null || true
+  fi
+  ok "已打开: ${url}"
+}
+
+supabase_list_projects() {
+  supabase_api GET "/projects"
+}
+
+supabase_pick_project_ref() {
+  local projects_json ref name
+  projects_json=$(supabase_list_projects)
+  ref=$(echo "$projects_json" | python3 -c "
+import sys, json
+projects = json.load(sys.stdin)
+if not projects:
+    sys.exit(1)
+if len(projects) == 1:
+    print(projects[0].get('id',''))
+    sys.exit(0)
+print('__MULTIPLE__')
+for i, p in enumerate(projects, 1):
+    print(f\"{i}. {p.get('name','?')} ({p.get('id','')})\")
+" 2>/dev/null) || die "无法获取项目列表 — 请确认 Access Token 有效"
+  if [[ "$ref" == "__MULTIPLE__" ]]; then
+    echo "$projects_json" | python3 -c "
+import sys, json
+for i, p in enumerate(json.load(sys.stdin), 1):
+    print(f\"  {i}. {p.get('name','?')} — {p.get('id','')}\")
+"
+    read -rp "选择项目编号: " choice
+    ref=$(echo "$projects_json" | python3 -c "
+import sys, json
+choice = int(sys.argv[1])
+print(json.load(sys.stdin)[choice-1]['id'])
+" "$choice")
+  fi
+  echo "$ref"
+}
+
+supabase_fetch_api_keys() {
+  supabase_api GET "/projects/${SUPABASE_PROJECT_REF}/api-keys" 2>/dev/null || echo "[]"
+}
+
 supabase_missing_env_help() {
   err "缺少 Supabase 配置。请在 .env.local 填写："
   err "  SUPABASE_ACCESS_TOKEN  — https://supabase.com/dashboard/account/tokens"
   err "  SUPABASE_PROJECT_REF   — 项目 Settings → General → Reference ID"
-  err "  NEXT_PUBLIC_SUPABASE_URL — 项目 Settings → API → Project URL"
-  err "  NEXT_PUBLIC_SUPABASE_ANON_KEY — 项目 Settings → API → anon public"
-  err "  SUPABASE_SERVICE_ROLE_KEY — 项目 Settings → API → service_role（仅服务端，勿暴露前端）"
+  err "  或运行: npm run setup:wizard（自动选择项目）"
   err "填写后运行: npm run setup:supabase"
 }
 

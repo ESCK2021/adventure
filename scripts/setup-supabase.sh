@@ -25,32 +25,44 @@ log "验证 Supabase Access Token"
 supabase_token_ok || die "Token 无效或 PROJECT_REF 错误"
 ok "已连接项目 ${SUPABASE_PROJECT_REF}"
 
-# Optional: backfill public URL/keys from Management API if missing
-if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" || -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
-  log "从 API 获取项目 URL / anon key"
-  project_json=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}")
-  api_url=$(echo "$project_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('api_url',''))")
-  if [[ -n "$api_url" && -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ]]; then
-    printf '\nNEXT_PUBLIC_SUPABASE_URL=%s\n' "$api_url" >> "$ENV_FILE"
-    export NEXT_PUBLIC_SUPABASE_URL="$api_url"
-    ok "已写入 NEXT_PUBLIC_SUPABASE_URL"
-  fi
-  # anon key requires separate API keys endpoint
-  keys_json=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}/api-keys" 2>/dev/null || echo "[]")
-  anon_key=$(echo "$keys_json" | python3 -c "
+  # Fetch URL, anon key, and service_role from API when missing
+  keys_json=$(supabase_fetch_api_keys)
+  if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" || -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" || -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+    log "从 API 获取项目 URL / API keys"
+    if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ]]; then
+      project_json=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}")
+      api_url=$(echo "$project_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('api_url',''))")
+      if [[ -n "$api_url" ]]; then
+        set_env_var "NEXT_PUBLIC_SUPABASE_URL" "$api_url"
+        export NEXT_PUBLIC_SUPABASE_URL="$api_url"
+        ok "已写入 NEXT_PUBLIC_SUPABASE_URL"
+      fi
+    fi
+    read -r anon_key service_key <<< "$(echo "$keys_json" | python3 -c "
 import sys, json
 keys = json.load(sys.stdin)
+anon = service = ''
 for k in keys:
-    if k.get('name') == 'anon' or k.get('type') == 'anon':
-        print(k.get('api_key',''))
-        break
-" 2>/dev/null || true)
-  if [[ -n "$anon_key" && -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
-    printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$anon_key" >> "$ENV_FILE"
-    export NEXT_PUBLIC_SUPABASE_ANON_KEY="$anon_key"
-    ok "已写入 NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    name = (k.get('name') or '').lower()
+    typ = (k.get('type') or '').lower()
+    val = k.get('api_key', '')
+    if name == 'anon' or typ == 'anon':
+        anon = val
+    if name == 'service_role' or typ == 'service_role':
+        service = val
+print(anon, service)
+")"
+    if [[ -n "$anon_key" && -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
+      set_env_var "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$anon_key"
+      export NEXT_PUBLIC_SUPABASE_ANON_KEY="$anon_key"
+      ok "已写入 NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    fi
+    if [[ -n "$service_key" && -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+      set_env_var "SUPABASE_SERVICE_ROLE_KEY" "$service_key"
+      export SUPABASE_SERVICE_ROLE_KEY="$service_key"
+      ok "已写入 SUPABASE_SERVICE_ROLE_KEY"
+    fi
   fi
-fi
 
 MIGRATIONS_DIR="${ROOT_DIR}/supabase/migrations"
 shopt -s nullglob
@@ -71,9 +83,17 @@ done
 log "生成 TypeScript 类型"
 TYPES_FILE="${ROOT_DIR}/src/lib/database.types.ts"
 mkdir -p "$(dirname "$TYPES_FILE")"
-types_code=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}/types/typescript" 2>/dev/null || true)
-if [[ -n "$types_code" && "$types_code" != *"message"* ]]; then
-  printf '%s\n' "$types_code" > "$TYPES_FILE"
+types_raw=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}/types/typescript" 2>/dev/null || true)
+if [[ -n "$types_raw" && "$types_raw" != *"message"* ]]; then
+  printf '%s' "$types_raw" | python3 -c "
+import sys, json
+raw = sys.stdin.read().strip()
+if raw.startswith('{'):
+    data = json.loads(raw)
+    print(data.get('types', raw))
+else:
+    print(raw)
+" > "$TYPES_FILE"
   ok "已写入 ${TYPES_FILE}"
 else
   err "无法通过 API 生成类型，尝试 Supabase CLI..."

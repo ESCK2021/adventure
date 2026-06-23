@@ -14,7 +14,9 @@
     "setup": "bash scripts/setup.sh",
     "setup:github": "bash scripts/setup-github.sh",
     "setup:supabase": "bash scripts/setup-supabase.sh",
-    "setup:vercel": "bash scripts/setup-vercel.sh"
+    "setup:vercel": "bash scripts/setup-vercel.sh",
+    "setup:wizard": "bash scripts/setup-wizard.sh",
+    "setup:secrets": "bash scripts/setup-github-secrets.sh"
   },
   "dependencies": {
     "@heroui/react": "^2.7.8",
