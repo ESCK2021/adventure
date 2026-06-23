@@ -83,3 +83,54 @@ install_node_if_missing() {
   fi
   ok "Node.js $(node -v)"
 }
+
+supabase_missing_env_help() {
+  err "缺少 Supabase 配置。请在 .env.local 填写："
+  err "  SUPABASE_ACCESS_TOKEN  — https://supabase.com/dashboard/account/tokens"
+  err "  SUPABASE_PROJECT_REF   — 项目 Settings → General → Reference ID"
+  err "  NEXT_PUBLIC_SUPABASE_URL — 项目 Settings → API → Project URL"
+  err "  NEXT_PUBLIC_SUPABASE_ANON_KEY — 项目 Settings → API → anon public"
+  err "  SUPABASE_SERVICE_ROLE_KEY — 项目 Settings → API → service_role（仅服务端，勿暴露前端）"
+  err "填写后运行: npm run setup:supabase"
+}
+
+vercel_missing_env_help() {
+  err "缺少 Vercel 配置。请在 .env.local 填写："
+  err "  VERCEL_TOKEN — https://vercel.com/account/settings/tokens"
+  err "可选（首次 link 后自动写入）："
+  err "  VERCEL_ORG_ID、VERCEL_PROJECT_ID"
+  err "填写后运行: npm run setup:vercel"
+}
+
+supabase_api() {
+  local method="$1" path="$2"
+  shift 2
+  curl -sS -X "$method" \
+    -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    "https://api.supabase.com/v1${path}" "$@"
+}
+
+supabase_token_ok() {
+  local code
+  code=$(supabase_api GET "/projects/${SUPABASE_PROJECT_REF}" -o /dev/null -w "%{http_code}" 2>/dev/null || echo "000")
+  [[ "$code" == "200" ]]
+}
+
+supabase_run_sql_file() {
+  local sql_file="$1"
+  local payload http_code msg
+  payload=$(python3 -c "
+import json, pathlib, sys
+sql = pathlib.Path(sys.argv[1]).read_text()
+print(json.dumps({'query': sql}))
+" "$sql_file")
+  http_code=$(supabase_api POST "/projects/${SUPABASE_PROJECT_REF}/database/query" \
+    -d "$payload" -o /tmp/adventure_supabase_query.json -w "%{http_code}")
+  if [[ "$http_code" == "201" || "$http_code" == "200" ]]; then
+    return 0
+  fi
+  msg=$(python3 -c "import json; d=json.load(open('/tmp/adventure_supabase_query.json')); print(d.get('message', d))" 2>/dev/null || cat /tmp/adventure_supabase_query.json)
+  err "SQL 执行失败 (${http_code}): ${msg}"
+  return 1
+}

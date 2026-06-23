@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "setup": "bash scripts/setup.sh",
-    "setup:github": "bash scripts/setup-github.sh"
+    "setup:github": "bash scripts/setup-github.sh",
+    "setup:supabase": "bash scripts/setup-supabase.sh",
+    "setup:vercel": "bash scripts/setup-vercel.sh"
   },
   "dependencies": {
     "@heroui/react": "^2.7.8",

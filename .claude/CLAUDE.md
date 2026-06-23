@@ -41,6 +41,31 @@ Bootstrap and push are scripted — prefer scripts over manual git/GitHub steps.
 
 **Recall:** Read `~/.cursor/skills/github-automation/SKILL.md` for full workflow and troubleshooting. User docs: `docs/setup-zh.md`.
 
+## Supabase automation
+
+| Command | Purpose |
+|---------|---------|
+| `npm run setup:supabase` | Validate token, apply `supabase/migrations/*.sql`, generate `src/lib/database.types.ts` |
+
+**Secrets in `.env.local`:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`; also `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+**v1 schema:** `trips`, `trip_checklist_items`, `journal_entries` + RLS (user-owned) + `journal-photos` storage bucket.
+
+**Apply path:** Supabase Management API (`/database/query`); types via `/types/typescript` or `supabase gen types`.
+
+## Vercel automation
+
+| Command | Purpose |
+|---------|---------|
+| `npm run setup:vercel` | Link project, sync env vars, preview deploy |
+| `DEPLOY_PROD=1 npm run setup:vercel` | Production deploy |
+
+**Secrets:** `VERCEL_TOKEN` in `.env.local`; CI uses GitHub Secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (auto-saved after `setup:vercel`).
+
+**CI:** `.github/workflows/preview.yml` (PR preview), `release.yml` (production on `release/*`).
+
+**Recall:** `~/.cursor/skills/deployment-automation/SKILL.md` for Supabase + Vercel workflow.
+
 ## Workflow
 
 1. Read `docs/brief.md` for product scope.

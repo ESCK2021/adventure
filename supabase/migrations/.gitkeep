@@ -1,3 +1,0 @@
--- Adventure v1 schema (placeholder — apply via db-migration-writer agent)
--- Tables: trips, trip_checklist_items, journal_entries
--- RLS: users can only access their own trips and entries

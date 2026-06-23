@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 SKIP_GITHUB="${SKIP_GITHUB:-0}"
+SKIP_SUPABASE="${SKIP_SUPABASE:-0}"
+SKIP_VERCEL="${SKIP_VERCEL:-0}"
 SKIP_INSTALL="${SKIP_INSTALL:-0}"
 RUN_DEV="${RUN_DEV:-0}"
 
@@ -70,11 +72,37 @@ else
   ok "已跳过 GitHub (SKIP_GITHUB=1)"
 fi
 
+# 7. Supabase
+if [[ "$SKIP_SUPABASE" != "1" ]]; then
+  if [[ -n "${SUPABASE_ACCESS_TOKEN:-}" && -n "${SUPABASE_PROJECT_REF:-}" ]]; then
+    bash "${SCRIPT_DIR}/setup-supabase.sh"
+  else
+    err "跳过 Supabase：.env.local 中未设置 SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF"
+    err "设置后运行: npm run setup:supabase"
+  fi
+else
+  ok "已跳过 Supabase (SKIP_SUPABASE=1)"
+fi
+
+# 8. Vercel
+if [[ "$SKIP_VERCEL" != "1" ]]; then
+  if [[ -n "${VERCEL_TOKEN:-}" ]]; then
+    bash "${SCRIPT_DIR}/setup-vercel.sh"
+  else
+    err "跳过 Vercel：.env.local 中未设置 VERCEL_TOKEN"
+    err "设置后运行: npm run setup:vercel"
+  fi
+else
+  ok "已跳过 Vercel (SKIP_VERCEL=1)"
+fi
+
 log "设置完成"
 echo ""
-echo "  开发服务器:  npm run dev"
-echo "  仅 GitHub:   npm run setup:github"
-echo "  文档:        docs/setup-zh.md"
+echo "  开发服务器:   npm run dev"
+echo "  GitHub:       npm run setup:github"
+echo "  Supabase:     npm run setup:supabase"
+echo "  Vercel:       npm run setup:vercel"
+echo "  文档:         docs/setup-zh.md"
 echo ""
 
 if [[ "$RUN_DEV" == "1" ]]; then

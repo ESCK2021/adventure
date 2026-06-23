@@ -5,6 +5,10 @@ on:
     branches: ["release/**"]
   workflow_dispatch:
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -22,9 +26,13 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
 
-      - name: Production deploy note
-        run: |
-          echo "Production deploy runs via Vercel on merge to main or release branch."
-          echo "Configure SENTRY_AUTH_TOKEN for release markers when Sentry is wired."
+      - name: Deploy production to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          scope: ${{ secrets.VERCEL_ORG_ID }}
 
 # Gate: design review must be complete on release branch per GitFlow + CLAUDE.md

@@ -1,0 +1,10 @@
+# Minimal Supabase CLI config for local linking / db push fallback.
+# See https://supabase.com/docs/guides/cli/config
+
+project_id = "env(SUPABASE_PROJECT_REF)"
+
+[db]
+major_version = 15
+
+[api]
+enabled = true
