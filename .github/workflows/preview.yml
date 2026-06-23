@@ -1,0 +1,17 @@
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preview deploy note
+        run: |
+          echo "Vercel preview deploys automatically when the project is linked."
+          echo "Ensure VERCEL_TOKEN and VERCEL_ORG_ID are configured in GitHub secrets."
+
+# After linking Vercel to this repo, replace this stub with the official
+# Vercel GitHub integration or vercel/action preview workflow.

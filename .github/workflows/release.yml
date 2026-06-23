@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    branches: ["release/**"]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+      - name: Production deploy note
+        run: |
+          echo "Production deploy runs via Vercel on merge to main or release branch."
+          echo "Configure SENTRY_AUTH_TOKEN for release markers when Sentry is wired."
+
+# Gate: design review must be complete on release branch per GitFlow + CLAUDE.md

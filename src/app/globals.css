@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-adventure-green: #2d6a4f;
+  --color-adventure-sky: #48cae4;
+  --color-adventure-earth: #6b4f3a;
+  --color-adventure-sand: #f4f1de;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+}
