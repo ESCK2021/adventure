@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "setup": "bash scripts/setup.sh",
+    "setup:github": "bash scripts/setup-github.sh"
   },
   "dependencies": {
     "@heroui/react": "^2.7.8",

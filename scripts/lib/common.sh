@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Shared helpers for Adventure setup scripts.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ROOT_DIR}/.env.local"
+NODE_VERSION="22.16.0"
+NODE_DIR="${HOME}/.local/node-v${NODE_VERSION}-darwin-$(uname -m)"
+
+log() { printf '\n▸ %s\n' "$*"; }
+ok()  { printf '  ✓ %s\n' "$*"; }
+err() { printf '  ✗ %s\n' "$*" >&2; }
+die() { err "$*"; exit 1; }
+
+load_env() {
+  if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+  fi
+}
+
+ensure_path() {
+  if [[ -x "${NODE_DIR}/bin/node" ]]; then
+    export PATH="${NODE_DIR}/bin:${PATH}"
+  fi
+}
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "缺少命令: $1"
+}
+
+github_api() {
+  local method="$1" path="$2"
+  shift 2
+  curl -sS -X "$method" \
+    -H "Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com${path}" "$@"
+}
+
+github_repo_exists() {
+  local owner="$1" repo="$2"
+  local code
+  code=$(github_api GET "/repos/${owner}/${repo}" -o /dev/null -w "%{http_code}")
+  [[ "$code" == "200" ]]
+}
+
+github_token_ok() {
+  local login
+  login=$(github_api GET "/user" | python3 -c "import sys,json; print(json.load(sys.stdin).get('login',''))")
+  [[ -n "$login" && "$login" != "None" ]]
+}
+
+github_can_write_contents() {
+  local owner="$1" repo="$2"
+  local code msg
+  code=$(github_api POST "/repos/${owner}/${repo}/git/blobs" \
+    -o /tmp/adventure_blob.json -w "%{http_code}" \
+    -d '{"content":"dGVzdA==","encoding":"base64"}')
+  msg=$(python3 -c "import json; print(json.load(open('/tmp/adventure_blob.json')).get('message',''))" 2>/dev/null || true)
+  if [[ "$code" == "201" ]]; then return 0; fi
+  if [[ "$code" == "409" && "$msg" == *"empty"* ]]; then return 0; fi
+  return 1
+}
+
+install_node_if_missing() {
+  if command -v node >/dev/null 2>&1; then
+    ok "Node.js $(node -v)"
+    return
+  fi
+  log "安装 Node.js ${NODE_VERSION} 到 ${NODE_DIR}"
+  mkdir -p "${HOME}/.local"
+  local arch tarball
+  arch=$(uname -m)
+  tarball="node-v${NODE_VERSION}-darwin-${arch}.tar.gz"
+  curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/${tarball}" -o "/tmp/${tarball}"
+  tar -xzf "/tmp/${tarball}" -C "${HOME}/.local"
+  export PATH="${NODE_DIR}/bin:${PATH}"
+  if ! grep -q 'node-v22.16.0-darwin' "${HOME}/.zshrc" 2>/dev/null; then
+    printf '\n# Node.js (Adventure setup)\nexport PATH="%s/bin:$PATH"\n' "$NODE_DIR" >> "${HOME}/.zshrc"
+  fi
+  ok "Node.js $(node -v)"
+}

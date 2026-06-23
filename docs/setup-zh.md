@@ -1,108 +1,78 @@
-# Adventure 本地环境配置指南
+# Adventure 全自动设置指南
 
-## 已完成（自动）
+一条命令完成：Node 安装、依赖、Git、GitHub 建库推送、质量检查。
 
-- [x] Node.js 22.16.0 安装到 `~/.local/node-v22.16.0-darwin-arm64/`
-- [x] `~/.zshrc` 已写入 PATH（新开终端自动生效）
-- [x] `npm install` 依赖已安装
-- [x] 类型检查、单元测试、Lint 已通过
-- [x] `.env.local` 已创建（待填写密钥）
+## 快速开始
 
-## 需要你手动完成
+### 1. 准备 GitHub Token（只需做一次）
 
-### 1. Xcode Command Line Tools（用于 Git）
+在 https://github.com/settings/tokens?type=beta 创建 **Fine-grained PAT**：
 
-系统应已弹出安装窗口。若没有，在终端执行：
+| 设置 | 值 |
+|------|-----|
+| Repository access | **All repositories** |
+| Contents | Read and write |
+| Workflows | Read and write |
+| Administration（账户级，可选） | Read and write（用于自动建库） |
 
-```bash
-xcode-select --install
-```
-
-安装完成后验证：
+### 2. 写入 `.env.local`
 
 ```bash
-git --version
+GITHUB_PERSONAL_ACCESS_TOKEN=你的token
+GITHUB_OWNER=ESCK2021          # 可选，默认 ESCK2021
+GITHUB_REPO=adventure          # 可选，默认 adventure
 ```
 
-然后在项目目录初始化 Git：
+**不要把 token 发到聊天或提交到 Git。**
 
-```bash
-cd ~/Projects/adventure
-git init
-git checkout -b develop
-git add .
-git commit -m "chore: bootstrap Adventure project"
-```
-
-### 2. 启动开发服务器
+### 3. 一键设置
 
 ```bash
 cd ~/Projects/adventure
-source scripts/setup-path.sh   # 若当前终端还没有 node
-npm run dev
+npm run setup
 ```
 
-浏览器打开：http://localhost:3000
+脚本会自动：
 
-### 3. GitHub 仓库
+1. 安装 Node.js 22（若缺失）到 `~/.local/`
+2. `npm install`
+3. `git init` + 首次提交（若尚未初始化）
+4. 验证 Token 权限
+5. 创建 GitHub 仓库（若不存在）
+6. 推送 `develop` 和 `main`
+7. 运行 typecheck / test / lint
 
-1. 在 https://github.com/new 创建仓库 `adventure`（或你喜欢的名字）
-2. 创建 **Fine-grained PAT**：Settings → Developer settings → Personal access tokens
-   - 权限：Contents、Pull requests、Workflows（按需）
-3. 填入 `.env.local`：
+### 可选环境变量
 
-```bash
-GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
-```
-
-4. 关联远程并推送：
-
-```bash
-git remote add origin git@github.com:你的用户名/adventure.git
-git push -u origin develop
-```
-
-### 4. Supabase
-
-1. 在 https://supabase.com/dashboard 创建项目
-2. Project Settings → API 复制 URL 和 anon key
-3. 填入 `.env.local`：
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_PROJECT_REF=你的项目ref
-SUPABASE_ACCESS_TOKEN=从 Account → Access Tokens 获取
-```
-
-4. 重启 Cursor 或重新加载 MCP，使 `.cursor/mcp.json` 读取新环境变量
-
-### 5. Figma MCP
-
-1. 在 Cursor 设置中启用 Figma MCP（官方远程：`https://mcp.figma.com/mcp`）
-2. 按 `docs/figma-structure.md` 创建设计文件
-3. 设计审批标记：帧状态设为 **Ready for dev**
-
-### 6. Vercel 部署（可选，推送 GitHub 后）
-
-1. https://vercel.com 导入 GitHub 仓库
-2. 在 Vercel 项目设置中添加环境变量（与 `.env.local` 相同）
-3. 在 GitHub Secrets 配置 `VERCEL_TOKEN` 等（见 `.github/workflows/preview.yml` 注释）
-
-## 常用命令
-
-| 命令 | 说明 |
+| 变量 | 说明 |
 |------|------|
-| `npm run dev` | 开发服务器 |
-| `npm run build` | 生产构建 |
-| `npm run test` | 单元测试 |
-| `npm run test:e2e` | E2E 测试（需先 `npx playwright install`） |
-| `npm run lint` | 代码检查 |
+| `SKIP_GITHUB=1` | 跳过 GitHub 步骤 |
+| `SKIP_INSTALL=1` | 跳过 npm install |
+| `RUN_DEV=1` | 设置完成后启动 dev server |
 
-## 下一步
+```bash
+RUN_DEV=1 npm run setup
+```
 
-Git + 密钥配置完成后，建议顺序：
+### 仅同步 GitHub
 
-1. Figma 设计系统 + MVP 界面
-2. Supabase 数据库迁移（`.claude/agents/db-migration-writer.md`）
-3. 按已审批设计实现功能
+```bash
+npm run setup:github
+```
+
+## 仍需手动的部分
+
+| 项目 | 原因 |
+|------|------|
+| Xcode CLI Tools | 系统弹窗，无法脚本化 |
+| PAT 创建 | 安全，需用户在 GitHub 网页操作一次 |
+| Supabase / Figma / Vercel | 需各自账号密钥，填入 `.env.local` |
+
+## 仓库地址
+
+https://github.com/ESCK2021/adventure
+
+## 安全提醒
+
+- Token 只存在 `.env.local`（已在 `.gitignore`）
+- 若 token 曾泄露，请在 GitHub **Revoke** 后重新生成并更新 `.env.local`
