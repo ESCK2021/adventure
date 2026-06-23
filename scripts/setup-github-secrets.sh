@@ -34,15 +34,19 @@ if [[ -z "$key_id" || -z "$pub_key" ]]; then
   exit 1
 fi
 
+ensure_pynacl() {
+  python3 -c "from nacl import encoding, public" 2>/dev/null && return 0
+  log "安装 PyNaCl（GitHub Secrets 加密所需）"
+  python3 -m pip install pynacl -q
+  python3 -c "from nacl import encoding, public" || die "无法安装 PyNaCl — 请运行: python3 -m pip install pynacl"
+}
+
+ensure_pynacl
+
 encrypt_secret() {
   python3 - "$1" "$2" <<'PY'
 import base64, sys
-try:
-    from nacl import encoding, public
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pynacl", "-q"])
-    from nacl import encoding, public
+from nacl import encoding, public
 
 secret, pub_b64 = sys.argv[1], sys.argv[2]
 pub = public.PublicKey(pub_b64.encode(), encoding.Base64Encoder())
