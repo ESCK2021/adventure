@@ -2,7 +2,7 @@
 # Shared helpers for Adventure setup scripts.
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 ENV_FILE="${ROOT_DIR}/.env.local"
 NODE_VERSION="22.16.0"
 NODE_DIR="${HOME}/.local/node-v${NODE_VERSION}-darwin-$(uname -m)"

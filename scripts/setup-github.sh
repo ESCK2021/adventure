@@ -48,11 +48,12 @@ fi
 
 # Push without embedding token in remote URL (use header auth for this session)
 AUTH_REMOTE="https://x-access-token:${GITHUB_PERSONAL_ACCESS_TOKEN}@github.com/${GITHUB_OWNER}/${GITHUB_REPO}.git"
-GIT_TERMINAL_PROMPT=0 git -c credential.helper= push -u "$AUTH_REMOTE" develop
+GIT_TERMINAL_PROMPT=0 git -c credential.helper= push "$AUTH_REMOTE" develop
 GIT_TERMINAL_PROMPT=0 git -c credential.helper= push "$AUTH_REMOTE" main 2>/dev/null || \
   GIT_TERMINAL_PROMPT=0 git -c credential.helper= push "$AUTH_REMOTE" main:main
 
 git remote set-url origin "$REMOTE_URL"
+git fetch origin 2>/dev/null || true
 git branch --set-upstream-to=origin/develop develop 2>/dev/null || true
 
 ok "已推送 develop 和 main → ${REMOTE_URL}"
